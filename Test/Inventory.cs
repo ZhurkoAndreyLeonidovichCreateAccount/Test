@@ -3,7 +3,7 @@
 internal class Inventory
 {
     private readonly List<Item> _items = [];   
-    private readonly Lock _lock = new ();
+    private readonly ReaderWriterLockSlim _lock = new();
     private int _totalWeight;
 
     public int MaxWeight {get; }
@@ -17,11 +17,15 @@ internal class Inventory
     {
         get 
         {
-            lock (_lock) 
+            _lock.EnterReadLock();
+            try
             {
                 return _items.ToList().AsReadOnly();
             }
-            
+            finally 
+            {
+                _lock.ExitReadLock();
+            }                                               
         }
     }
 
@@ -32,7 +36,8 @@ internal class Inventory
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        lock (_lock) 
+        _lock.EnterWriteLock();
+        try
         {
             var newTotalWight = _totalWeight + item.Weight;
 
@@ -46,22 +51,27 @@ internal class Inventory
             if (existingElement != null)
             {
                 _items.Remove(existingElement);
-                _items.Add(new Item(existingElement.Name, existingElement.Weight + item.Weight));              
+                _items.Add(new Item(existingElement.Name, existingElement.Weight + item.Weight));
             }
             else
             {
                 _items.Add(item);
             }
 
-            _totalWeight = newTotalWight;  
-        }       
+            _totalWeight = newTotalWight;
+        }
+        finally 
+        {
+            _lock.ExitWriteLock();
+        }
     }
 
     public bool RemoveItem(Item item)
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        lock (_lock)
+        _lock.EnterWriteLock();
+        try 
         {
             var removeItem = _items.FirstOrDefault(x => x.Name == item.Name);
 
@@ -72,7 +82,11 @@ internal class Inventory
            
             _totalWeight -= removeItem.Weight;
             return _items.Remove(removeItem);
-        }      
+        }
+        finally 
+        { 
+            _lock.ExitWriteLock(); 
+        }
     }
 
     public IReadOnlyList<Item> FindByName(string substring)
@@ -82,11 +96,16 @@ internal class Inventory
             return Array.Empty<Item>();
         }
 
-        lock (_lock) 
+        _lock.EnterReadLock();
+        try 
         {
             return _items.Where(x => x.Name.Contains(substring, StringComparison.OrdinalIgnoreCase))
                      .ToList()
                      .AsReadOnly();
-        }       
+        }
+        finally 
+        { 
+            _lock.ExitReadLock(); 
+        }
     }
 }

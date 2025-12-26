@@ -22,10 +22,11 @@ namespace UnitTesting
 
             addedItem.Name.Should().Be("Sword");
             addedItem.Weight.Should().Be(10);
+            inventory.TotalWeight.Should().Be(10);
         }
 
         [Fact]
-        public void AddItem_WhenItemWithSameNameExists_AddsItemToInventory() 
+        public void AddItem_WhenItemWithSameNameExists_AddsWeightToItem() 
         {
             //Arrange
             var inventory = new Inventory();
@@ -40,6 +41,7 @@ namespace UnitTesting
             inventory.Items.Should().HaveCount(1);
             var addedItem = inventory.Items.FirstOrDefault();
             addedItem.Weight.Should().Be(20);
+            inventory.TotalWeight.Should().Be(20);
         }
 
         [Fact]
@@ -68,10 +70,11 @@ namespace UnitTesting
             inventory.AddItem(item1);
 
             //Act
-          var result = inventory.RemoveItem(item1);
+            var result = inventory.RemoveItem(item1);
 
             //Assert
             inventory.Items.Should().BeEmpty();
+            inventory.TotalWeight.Should().Be(0);
             result.Should().BeTrue();
         }
 
@@ -84,7 +87,7 @@ namespace UnitTesting
             inventory.AddItem(item1);
 
             //Act
-           var result = inventory.FindByName(item1.Name);
+            var result = inventory.FindByName(item1.Name);
 
             //Assert           
             result.Should().ContainSingle(result => result.Name == item1.Name);

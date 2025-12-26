@@ -2,9 +2,16 @@
 
 internal class Inventory
 {
-    private readonly List<Item> _items = [];
-    private const int MaxWeight = 100;
-    private readonly Lock _lock = new ();   
+    private readonly List<Item> _items = [];   
+    private readonly Lock _lock = new ();
+    private int _totalWeight;
+
+    public int MaxWeight {get; }
+
+    public Inventory(int maxWeight = 100) 
+    {
+        MaxWeight = maxWeight;
+    }
 
     public IReadOnlyCollection<Item> Items 
     {
@@ -18,24 +25,16 @@ internal class Inventory
         }
     }
 
-    public int TotalWeight
-    {
-        get 
-        {
-            lock (_lock) 
-            {
-                return _items.Sum(x => x.Weight);
-            }
-            
-        }
-    }
+    public int TotalWeight => _totalWeight;
+    
+
     public void AddItem(Item item)
     {
         ArgumentNullException.ThrowIfNull(item);
 
         lock (_lock) 
         {
-            var newTotalWight = TotalWeight + item.Weight;
+            var newTotalWight = _totalWeight + item.Weight;
 
             if (newTotalWight > MaxWeight)
             {
@@ -47,28 +46,33 @@ internal class Inventory
             if (existingElement != null)
             {
                 _items.Remove(existingElement);
-                _items.Add(new Item(existingElement.Name, existingElement.Weight + item.Weight));
-                return;
+                _items.Add(new Item(existingElement.Name, existingElement.Weight + item.Weight));              
+            }
+            else
+            {
+                _items.Add(item);
             }
 
-            _items.Add(item);
-        }
-        
+            _totalWeight = newTotalWight;  
+        }       
     }
 
     public bool RemoveItem(Item item)
     {
-        var removeItem = _items.FirstOrDefault(x => x.Name == item.Name);
-        if (removeItem == null) 
-        {
-            return false;
-        }
+        ArgumentNullException.ThrowIfNull(item);
 
-        lock (_lock) 
+        lock (_lock)
         {
+            var removeItem = _items.FirstOrDefault(x => x.Name == item.Name);
+
+            if (removeItem == null) 
+            {
+                return false;
+            }
+           
+            _totalWeight -= removeItem.Weight;
             return _items.Remove(removeItem);
-        }
-        
+        }      
     }
 
     public IReadOnlyList<Item> FindByName(string substring)
